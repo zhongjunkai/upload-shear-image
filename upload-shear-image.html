@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>上传图片、剪切、保存图片</title>
+    <style type="text/css">
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas" width="1000" height="800">你的浏览器不支持canvas,请换用google浏览器</canvas>
+<input type="file" id="upload" style="width: 0;height: 0;"/>
+<button id="uploadBtn" type="button">上传图片</button>
+<button id="download" type="button">剪切保存图片</button>
+<button id="reset" type="button">重置</button>
+<script type="text/javascript">
+    var rect = {}, drag = false, ctx = null, img = null, canvas= null;
+
+    window.addEventListener("load", function setup(evt) {
+        "use strict"
+
+        window.removeEventListener(evt.type, setup, false);
+
+        canvas = document.getElementById("canvas");
+
+        ctx = canvas.getContext("2d");
+
+        canvas.height = canvas.width = 0;
+
+        initCanvasShear();
+
+        img = new Image();
+        //
+        // img.src = "../assets/images/beauty.jpg";
+        //
+        // img.onload = function() {
+        //     ctx.drawImage(img, 0, 0, 1000, 800);
+        //     ctx.save();
+        // }
+
+        ctx.strokeStyle = "#01B4EE";
+
+        ctx.lineWidth = 2;
+
+        ctx.fillStyle = "#f39";
+
+        canvas.addEventListener("mousedown", mouseDown, false);
+        canvas.addEventListener("mouseup", mouseUp, false);
+        canvas.addEventListener("mousemove", mouseMove, false);
+
+        var button = document.getElementById("download");
+
+        button.addEventListener("click", function(evt) {
+            var elems = document.querySelector("a");
+
+            if(elems) {
+                elems.remove();
+            }
+
+            canvas.style.backgroundColor = "#ffffff";
+
+            var a = document.createElement("a");
+
+            a.setAttribute("href", ctx.canvas.toDataURL());
+
+            var name = new Date().getTime() + ".png";  // jpg的默认背景颜色为黑色； png格式的图片的默认背景颜色为无色
+
+            a.setAttribute("download", name);
+
+            document.body.appendChild(a);
+
+            document.querySelector("a").click();
+
+            ctx.restore();  // 这个没有和clip() 一起使用，因此没起到作用
+
+            window.location.href = "";
+        }, false);
+    }, false);
+
+
+    function initCanvasShear() {
+        var uploadBtn = document.getElementById("uploadBtn");
+        var upload = document.getElementById("upload");
+        var resetBtn = document.getElementById("reset");
+
+        uploadBtn.addEventListener("click", function (e) {
+            upload.click();
+        }, false);
+
+        upload.addEventListener("change", function (e) {
+
+            var target = e.target;
+
+            var files = target.files;
+
+            if(!files || files && files.length == 0) {
+                alert("请选择一个待上传的文件");
+                return false;
+            }
+
+            uploadBtn.remove();
+
+            var f = files[0];
+
+            canvas.width = 1000;
+
+            canvas.height = 800;
+
+            var reader=new FileReader();
+
+            reader.readAsDataURL(f);
+
+            reader.onload = function(res){
+
+                console.log(res.target.result);
+
+                img.src = res.target.result;
+
+                img.onload = function(item) {
+
+                    ctx.strokeStyle = "#01B4EE";
+
+                    ctx.drawImage(img, 0 , 0, 1000, 800);
+                }
+            }
+        }, false);
+
+        resetBtn.addEventListener("click", function(e) {
+            window.location.href = "";
+        }, false);
+    }
+
+    // 鼠标按下去的事件
+    function mouseDown(e) {
+        var canvas = e.currentTarget;
+        rect.startX = e.pageX - canvas.offsetLeft;
+        rect.startY = e.pageY - canvas.offsetTop;
+        drag = true;
+    }
+
+    // 鼠标松开的事件
+    function mouseUp(e) {
+        drag = false;
+
+        if(!drag && Object.getOwnPropertyNames(rect).length >= 4) {
+
+            var widthRate  = canvas.width / img.naturalWidth;
+
+            var heightRate = canvas.height / img.naturalHeight;
+
+            ctx.clearRect(0 , 0, canvas.width, canvas.height);
+
+            ctx.drawImage(img, rect.startX / widthRate, rect.startY / heightRate, rect.w / widthRate, rect.h/heightRate, rect.startX, rect.startY, rect.w, rect.h);
+        }
+    }
+
+    // 鼠标移动的事件
+    function mouseMove(e) {
+        if(drag) {
+            var canvas = e.currentTarget;
+
+            rect.w = (e.pageX - canvas.offsetLeft) - rect.startX;
+
+            rect.h = (e.pageY - canvas.offsetTop) - rect.startY;
+
+            // 先将之前绘制的图形给清除掉
+            ctx.save();
+
+            // 画布进行了清除 -- 需要重绘
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
+            // 重新设置画布背景
+            ctx.drawImage(img, 0, 0, 1000, 800);
+
+            // ctx.drawImage(img, rect.startX, rect.startY, rect.w, rect.h, rect.startX, rect.startY, rect.w, rect.h);
+
+            drawRect("stroke");
+        }
+    }
+
+    // 绘制矩形
+    function drawRect(style) {
+
+        if(style == "fill") {
+            ctx.fillRect(rect.startX, rect.startY, rect.w, rect.h);
+        }
+        if(style == "stroke") {
+            ctx.strokeRect(rect.startX, rect.startY, rect.w, rect.h);
+        }
+
+    }
+</script>
+</body>
+</html>
